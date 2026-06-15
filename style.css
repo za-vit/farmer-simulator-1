@@ -1,0 +1,96 @@
+* { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+body { margin: 0; background: #eef5ed; color: #333; display: flex; height: 100vh; overflow: hidden; position: relative; }
+
+/* Layout Base Fazenda */
+.painel-esquerdo { flex: 1; background: linear-gradient(to bottom, #7cd07c, #4a934a); display: flex; flex-direction: column; align-items: center; justify-content: center; border-right: 5px solid #2e612e; text-align: center; padding: 20px; }
+.painel-esquerdo h2 { color: white; margin-bottom: 5px; }
+.painel-esquerdo h3 { color: #fffb00; margin-top: 0; }
+.painel-esquerdo h1 { color: white; margin-top: 20px; font-size: 2.5rem; }
+.carteira { color: white; font-size: 1.3rem; background: rgba(0,0,0,0.2); padding: 5px 15px; border-radius: 20px; }
+
+.painel-central { flex: 1.5; padding: 20px; display: flex; flex-direction: column; align-items: center; background: #fdfdfd; }
+.painel-central h2 { margin-bottom: 5px; }
+
+.painel-direito { flex: 1.2; background: #f4f4f4; border-left: 5px solid #ddd; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+
+/* Imagens Principais */
+.sprite-clicker { width: 180px; height: 180px; cursor: pointer; transition: transform 0.05s; object-fit: contain; }
+.sprite-clicker:active { transform: scale(0.95); }
+
+/* Grid de Campos */
+.grid-campos { display: grid; grid-template-columns: repeat(3, 110px); gap: 15px; margin-top: 20px; }
+.campo { width: 110px; height: 110px; background-color: #8b5a2b; border: 3px solid #5c3a1a; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; }
+.campo img { width: 70%; height: 70%; object-fit: contain; }
+.campo .progresso { position: absolute; bottom: 0; left: 0; height: 8px; background-color: #4caf50; width: 0%; }
+
+/* Componentes de Estilo */
+.secao-loja { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+.item-loja { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+button { padding: 8px 12px; background-color: #4a934a; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+button:hover { background-color: #3b753b; }
+button:disabled { background-color: #ccc; cursor: not-allowed; }
+.btn-cidade { background: #2a6f97; font-size: 1.2rem; padding: 15px; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+.btn-voltar { background-color: #555; margin-bottom: 15px; z-index: 30; }
+
+/* --- 🏙️ CIDADE EXTERIOR --- */
+#tela-cidade {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10; padding: 40px; opacity: 0; transition: opacity 0.4s ease-in-out;
+    background-color: #a0c4ff; 
+    
+    /* =========================================================================
+       🎨 [SPRITE] BACKGROUND DA CIDADE EXTERIOR 
+       Substitua o caminho abaixo pela sua imagem de fundo!
+       Exemplo: background-image: url('sprites/fundo_cidade.png');
+       ========================================================================= */
+    background-image: url('CAMINHO_DA_SUA_IMAGEM_DA_CIDADE.png'); 
+    
+    background-position: center; background-size: cover; background-repeat: no-repeat;
+}
+.moedas-cidade { font-size: 1.2rem; font-weight: bold; background: white; padding: 5px 15px; border-radius: 10px; }
+.rua-da-cidade { display: flex; gap: 60px; margin-top: 50px; }
+.predio-loja { width: 220px; height: 260px; background: #333d4a; border: 5px solid #1e252f; border-radius: 12px; box-shadow: 0 15px 25px rgba(0,0,0,0.4); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; font-weight: bold; text-align: center; padding: 15px; transition: transform 0.2s; }
+.predio-loja:hover { transform: translateY(-10px); }
+.vcl { background: #e67e22; border-color: #d35400; }
+.flr { background: #27ae60; border-color: #219653; }
+.img-predio { width: 80px; height: 80px; margin-bottom: 15px; object-fit: contain; }
+
+/* --- 🏪 INTERIORES DAS LOJAS --- */
+.interior-loja {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: #fff3e0; display: none; padding: 40px; z-index: 20;
+    background-position: center; background-size: cover; background-repeat: no-repeat;
+    flex-direction: column;
+}
+
+/* =========================================================================
+   🎨 [SPRITE] BACKGROUND INTERIOR DAS LOJAS 
+   Substitua os caminhos abaixo pelas suas imagens de cenários internos!
+   Exemplo: background-image: url('sprites/interior_granja.png');
+   ========================================================================= */
+#loja-vendas { background-image: url('CAMINHO_DO_FUNDO_DA_LOJA_DE_VENDAS.png'); }
+#loja-seeds { background-image: url('CAMINHO_DO_FUNDO_DA_LOJA_DE_SEMENTES.png'); }
+
+/* Cenografia: Sistema de Balcões e NPCs */
+.area-atendimento { display: flex; position: relative; width: 100%; height: 220px; margin-bottom: 20px; }
+.npc-com-balcao { display: flex; flex-direction: column; align-items: center; position: relative; width: 160px; }
+.sprite-npc { width: 110px; height: 140px; object-fit: contain; background: rgba(238, 238, 238, 0.5); border-radius: 8px; cursor: pointer; z-index: 2; }
+
+/* O Balcão que esconde as pernas do Vendedor */
+.balcao-loja { width: 180px; height: 50px; background: #cd853f; border: 3px solid #8b5a2b; border-radius: 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); z-index: 3; margin-top: -30px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; color: white; text-shadow: 1px 1px black; }
+
+/* Balões de Fala e Caixas de Opções */
+.balao-fala { background: white; border: 3px solid #333; padding: 15px; border-radius: 12px; font-weight: bold; min-width: 250px; max-width: 450px; height: fit-content; box-shadow: 0 6px 12px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 10px; margin-top: 15px;}
+.opcoes-resposta { display: flex; gap: 10px; margin-top: 5px; }
+.btn-resposta { background-color: #2a6f97; font-size: 0.9rem; padding: 6px 12px; }
+.btn-resposta-sair { background-color: #cc4444; }
+
+/* Interface das Vendas */
+.painel-venda-grãos { background: rgba(255,255,255,0.9); padding: 20px; border-radius: 10px; border: 3px solid #e67e22; display: none; max-width: 700px; max-height: 40vh; overflow-y: auto; }
+
+/* 📦 SISTEMA DE PRATELEIRAS HORIZONTAIS */
+.container-prateleiras { display: flex; flex-direction: column; gap: 20px; background: rgba(210, 180, 140, 0.5); padding: 15px; border-radius: 10px; border: 4px solid #5c3a1a; max-width: 900px; }
+.prateleira-horizontal { display: flex; gap: 15px; background: #8b5a2b; border-bottom: 8px solid #5c3a1a; padding: 10px; overflow-x: auto; border-radius: 4px; }
+.semente-prateleira { background: white; border: 2px solid #ccc; border-radius: 6px; padding: 10px; display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 150px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; }
+.semente-prateleira:hover { transform: scale(1.03); border-color: #27ae60; }
+.img-semente-prateleira { width: 50px; height: 50px; object-fit: contain; margin-bottom: 5px; }
