@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paraná Farming Clicker - RPG Edition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&family=Afacad+Flux:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* DESIGN GERAL */
+        * { box-sizing: border-box; font-family: 'Afacad Flux', sans-serif; user-select: none; }
+        body { margin: 0; background: #eef5ed; display: flex; height: 100vh; overflow: hidden; position: relative; }
+        
+        /* 🏙️ EFEITO DE ENTRADA/SAÍDA DA CIDADE */
+        #city-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), #a0c4ff;
+            background-size: cover; background-position: center;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 100; opacity: 0; transition: opacity 0.4s ease, transform 0.4s ease;
+            transform: scale(1.1); /* Efeito de Zoom leve na entrada */
+        }
+        #city-overlay.active {
+            display: flex; opacity: 1; transform: scale(1);
+        }
+
+        /* INTERIORES DAS LOJAS */
+        .shop-interior {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff3e0; display: none; padding: 40px; z-index: 200;
+            flex-direction: column; justify-content: space-between;
+        }
+
+        /* LAYOUT DA FAZENDA */
+        .panel { height: 100%; display: flex; flex-direction: column; padding: 20px; }
+        .left-panel { flex: 1; background: #2d5a27; color: white; align-items: center; justify-content: center; border-right: 5px solid #1a3a16; text-align: center; }
+        .center-panel { flex: 1.5; background: #fdfdfd; align-items: center; }
+        .right-panel { flex: 1.2; background: #f4f4f4; border-left: 5px solid #ddd; gap: 15px; overflow-y: auto; }
+
+        /* CLICKER CENTRAL CORRIGIDO */
+        .clicker-box { width: 200px; height: 200px; cursor: pointer; transition: transform 0.1s; display: flex; align-items: center; justify-content: center; font-size: 5rem; border-radius: 50%; background: rgba(255,255,255,0.1); border: 5px solid #deff9a; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+        .clicker-box:active { transform: scale(0.9); }
+
+        /* BOTÕES E UPGRADES */
+        .upgrade-card { background: white; padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { cursor: pointer; padding: 10px 15px; border: none; border-radius: 5px; font-weight: bold; background: #2d5a27; color: white; transition: background 0.2s; }
+        button:hover { background: #3e7a37; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-city { background: #2a6f97; font-family: 'Comfortaa'; font-size: 1.2rem; width: 100%; padding: 15px; }
+
+        /* CAMPOS DE CULTIVO */
+        .grid-farm { display: grid; grid-template-columns: repeat(3, 110px); gap: 15px; margin-top: 20px; }
+        .field { width: 110px; height: 110px; background: #8b5a2b; border: 4px solid #5c3a1a; border-radius: 12px; position: relative; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .field .crop-view { font-size: 2.2rem; }
+        .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #deff9a; width: 0%; border-radius: 0 0 8px 8px; }
+
+        /* 📦 PRATELEIRAS NA PARTE SUPERIOR */
+        .shelves { background: #cd853f; border: 5px solid #8b5a2b; padding: 15px; display: flex; flex-direction: column; gap: 10px; border-radius: 10px; width: 100%; max-width: 800px; margin: 0 auto; }
+        .shelf-row { display: flex; gap: 15px; background: rgba(0,0,0,0.1); padding: 10px; overflow-x: auto; border-bottom: 6px solid #5c3a1a; border-radius: 4px; }
+        .seed-card { background: white; border: 3px solid #ddd; padding: 10px; border-radius: 8px; min-width: 140px; text-align: center; }
+        .seed-card .seed-icon { font-size: 2rem; margin-bottom: 5px; }
+
+        /* 👨‍🌾 VENDEDOR EMBAIXO DAS PRATELEIRAS */
+        .area-vendor { display: flex; align-items: flex-end; width: 100%; max-width: 800px; margin: 20px auto 0; gap: 20px; }
+        .npc-container { display: flex; flex-direction: column; align-items: center; width: 180px; }
+        .npc-char { font-size: 4.5rem; cursor: pointer; z-index: 2; transition: transform 0.2s; }
+        .npc-char:hover { transform: scale(1.05); }
+        .counter-table { width: 200px; height: 50px; background: #cd853f; border: 4px solid #8b5a2b; border-radius: 4px; z-index: 3; margin-top: -20px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.9rem; text-shadow: 1px 1px black; }
+        
+        .dialogue-bubble { background: white; border: 3px solid #333; padding: 15px; border-radius: 15px; flex-grow: 1; box-shadow: 0 5px 15px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 10px; justify-content: center; min-height: 100px; }
+    </style>
+</head>
+<body>
+
+<div class="left-panel panel">
+    <h3 id="txt-active-plant" style="font-family: 'Comfortaa'; color: #deff9a; margin: 0; font-size: 1.5rem;">Pinhão</h3>
+    <br>
+    <div id="main-clicker" class="clicker-box">🌲</div>
+    <h1 style="margin: 20px 0 5px;"><span id="txt-count">0</span> 🌱</h1>
+    <div style="background: rgba(0,0,0,0.3); padding: 8px 25px; border-radius: 20px; font-weight: bold; font-size: 1.2rem;">Carteira: $<span id="txt-wallet">0</span></div>
+</div>
+
+<div class="center-panel panel">
+    <h2>Lavoras do Paraná</h2>
+    <p style="color: #666; margin-top: 0;">Clique nos campos maduros! A colheita vai direto para os estoques.</p>
+    <div class="grid-farm" id="field-grid"></div>
+</div>
+
+<div class="right-panel panel">
+    <button class="btn-city" onclick="toggleCity(true)">Ir para a Cidade 🏙️</button>
+    <div>
+        <h3 style="color: #2d5a27;">Cooperativa de Upgrades</h3>
+        <div class="upgrade-card">
+            <div><strong>Fertilizante Turbo</strong><br><small>Nível: <span id="lvl-fert">1</span></small></div>
+            <button id="btn-fert" onclick="buy('fert')">Melhorar ($40)</button>
+        </div>
+        <br>
+        <div class="upgrade-card">
+            <div><strong>Trator Fordão (Auto)</strong><br><small>Qtd: <span id="qty-trator">0</span></small></div>
+            <button id="btn-trator" onclick="buy('trator')">Comprar ($100)</button>
+        </div>
+        <br>
+        <div class="upgrade-card">
+            <div><strong>Expandir Lotes</strong><br><small>Campos: <span id="qty-fields">1</span>/9</small></div>
+            <button id="btn-field" onclick="buy('field')">Comprar ($250)</button>
+        </div>
+        <br>
+        <div class="upgrade-card">
+            <div><strong>Boias-Frias (Auto-Harvest)</strong><br><small>Qtd: <span id="qty-workers">0</span></small></div>
+            <button id="btn-worker" onclick="buy('worker')">Contratar ($600)</button>
+        </div>
+    </div>
+</div>
+
+<div id="city-overlay">
+    <button style="position: absolute; top: 20px; left: 20px; font-size: 1.1rem; padding: 12px;" onclick="toggleCity(false)">⬅ Voltar para Fazenda</button>
+    <h1 style="color: white; text-shadow: 3px 3px 0px #000; font-size: 2.5rem; margin-bottom: 5px;">Centro Urbano do Paraná</h1>
+    <p style="background: white; padding: 8px 20px; border-radius: 20px; font-weight: bold; font-size: 1.2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">Suas Moedas: $<span id="city-wallet">0</span></p>
+    
+    <div style="display: flex; gap: 40px; margin-top: 40px;">
+        <div style="background: #e67e22; padding: 25px; border-radius: 15px; cursor: pointer; text-align: center; box-shadow: 0 8px 15px rgba(0,0,0,0.3);" onclick="openInterior('vendas')">
+            <div style="font-size: 3.5rem;">🏢</div>
+            <h2 style="color: white; margin: 10px 0 5px;">Granja Central</h2>
+            <small style="color: white; font-weight: bold;">Venda sua produção aqui</small>
+        </div>
+        <div style="background: #27ae60; padding: 25px; border-radius: 15px; cursor: pointer; text-align: center; box-shadow: 0 8px 15px rgba(0,0,0,0.3);" onclick="openInterior('seeds')">
+            <div style="font-size: 3.5rem;">🏪</div>
+            <h2 style="color: white; margin: 10px 0 5px;">Floricultura Paraná</h2>
+            <small style="color: white; font-weight: bold;">Compre sementes avançadas</small>
+        </div>
+    </div>
+</div>
+
+<div id="shop-vendas" class="shop-interior">
+    <div class="shelves" style="background: #d2a679; border-color: #a67c52;">
+        <h3 style="margin: 0; color: #5c3a1a;">Sacas Prontas no seu Estoque</h3>
+        <div id="inventory-list" style="background: rgba(255,255,255,0.6); padding: 15px; border-radius: 6px; font-weight: bold; min-height: 100px;">
+            Nenhuma semente no estoque no momento...
+        </div>
+    </div>
+
+    <div class="area-vendor">
+        <div class="npc-container">
+            <div class="npc-char" onclick="interactSales()">👨‍💼</div>
+            <div class="counter-table">Balcão de Vendas</div>
+        </div>
+        <div class="dialogue-bubble">
+            <span id="txt-sales" style="font-weight: bold; font-size: 1.1rem;">Olá! Sou o comprador da cooperativa. Clique em mim ou aperte abaixo para vender.</span>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="actionSell()">Vender Toda a Produção</button>
+                <button style="background: #cc4444;" onclick="closeInterior('vendas')">Voltar para a Rua</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="shop-seeds" class="shop-interior">
+    <div class="shelves">
+        <h3 style="margin: 0; color: white; text-shadow: 1px 1px black;">Prateleiras de Sementes Autorizadas</h3>
+        <div class="shelf-row" id="shelf-list"></div>
+    </div>
+
+    <div class="area-vendor" style="flex-direction: row-reverse;">
+        <div class="npc-container">
+            <div class="npc-char">👩‍🌾</div>
+            <div class="counter-table">Balcão de Sementes</div>
+        </div>
+        <div class="dialogue-bubble" style="text-align: right;">
+            <span style="font-weight: bold; font-size: 1.1rem;">Bem-vindo! Nossas prateleiras suspensas guardam o futuro do agronegócio. Clique em "Ativar" para mudar seu cultivo!</span>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button style="background: #cc4444;" onclick="closeInterior('seeds')">Voltar para a Rua</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ARRAYS DO CORE DO JOGO
+    const sementes = [
+        { id: 0, nome: "Pinhão", valor: 1, custo: 0, tempo: 3000, icon: "🌲" },
+        { id: 1, nome: "Erva-Mate", valor: 6, custo: 350, tempo: 6000, icon: "🌿" },
+        { id: 2, nome: "Soja", valor: 35, custo: 2500, tempo: 12000, icon: "🫘" },
+        { id: 3, nome: "Milho", valor: 200, custo: 18000, tempo: 25000, icon: "🌽" },
+        { id: 4, nome: "Café", valor: 1200, custo: 95000, tempo: 50000, icon: "☕" }
+    ];
+
+    let state = { 
+        coins: 0, 
+        activeIdx: 0, 
+        fert: 1, 
+        tractors: 0, 
+        fields: 1, 
+        workers: 0, 
+        stocks: [0, 0, 0, 0, 0], 
+        unlocked: [true, false, false, false, false] 
+    };
+
+    let fieldStates = Array.from({ length: 9 }, (_, i) => ({
+        id: i, status: i === 0 ? 'empty' : 'locked', progress: 0, seedId: 0
+    }));
+
+    // INICIALIZAÇÃO
+    window.onload = () => { 
+        renderFields(); 
+        updateUI(); 
+        setInterval(loopTractor, 1000); 
+        setInterval(loopGrowth, 100); 
+        setInterval(loopWorkers, 2500); 
+    };
+
+    // CLIQUE MANUAL NO BOTÃO GRANDE
+    document.getElementById('main-clicker').onclick = () => { 
+        state.stocks[state.activeIdx] += state.fert; 
+        updateUI(); 
+    };
+
+    // CONTROLADORES DE TRANSICÃO DE TELAS (CIDADE COM FADE)
+    function toggleCity(show) {
+        const city = document.getElementById('city-overlay');
+        if(show) { 
+            city.style.display = 'flex'; 
+            setTimeout(() => city.classList.add('active'), 10); 
+        } else { 
+            city.classList.remove('active'); 
+            setTimeout(() => city.style.display = 'none', 400); 
+        }
+        updateUI();
+    }
+
+    function openInterior(type) { 
+        document.getElementById('shop-' + type).style.display = 'flex'; 
+        if(type === 'vendas') renderSales(); 
+        else renderShelf(); 
+    }
+
+    function closeInterior(type) {
+        document.getElementById('shop-' + type).style.display = 'none';
+    }
+
+    // INTERAÇÕES DA LOJA DE VENDAS
+    function interactSales() { 
+        document.getElementById('txt-sales').innerText = "Quantas sacas você trouxe hoje para descarregar?"; 
+    }
+
+    function actionSell() {
+        let totalGanho = 0;
+        sementes.forEach((s, i) => { 
+            totalGanho += (state.stocks[i] * s.valor); 
+            state.stocks[i] = 0; 
+        });
+        state.coins += totalGanho;
+        document.getElementById('txt-sales').innerText = `Excelente! Toda a colheita foi vendida. Adicionamos $${totalGanho} ao seu saldo.`;
+        renderSales(); 
+        updateUI();
+    }
+
+    // MECÂNICA DE COLHEITA DO GRID
+    function harvest(id) {
+        let f = fieldStates[id];
+        if(f.status === 'ready') { 
+            state.stocks[f.seedId] += (state.fert * 4); // Multiplicador de ganho no campo
+            f.status = 'empty'; 
+            f.progress = 0; 
+            updateField(id); 
+            updateUI(); 
+            if(document.getElementById('shop-vendas').style.display === 'flex') renderSales();
+        }
+    }
+
+    // COMPRA DE UPGRADES
+    function buy(type) {
+        let cFert = Math.floor(40 * Math.pow(1.95, state.fert - 1));
+        let cTrator = Math.floor(100 * Math.pow(1.85, state.tractors));
+        let cField = Math.floor(250 * Math.pow(3.2, state.fields - 1));
+        let cWorker = Math.floor(600 * Math.pow(2.1, state.workers));
+
+        if(type === 'fert' && state.coins >= cFert) { state.coins -= cFert; state.fert++; }
+        if(type === 'trator' && state.coins >= cTrator) { state.coins -= cTrator; state.tractors++; }
+        if(type === 'worker' && state.coins >= cWorker) { state.coins -= cWorker; state.workers++; }
+        if(type === 'field' && state.coins >= cField && state.fields < 9) { 
+            fieldStates[state.fields].status = 'empty'; 
+            state.fields++; 
+        }
+        updateUI(); 
+        renderFields();
+    }
+
+    // AUTOMATIZAÇÕES (LOOPS TIME)
+    function loopTractor() { 
+        if(state.tractors > 0) { 
+            state.stocks[state.activeIdx] += (state.tractors * state.fert); 
+            updateUI(); 
+        } 
+    }
+
+    function loopGrowth() {
+        fieldStates.forEach(f => {
+            if(f.status === 'empty') { 
+                f.status = 'growing'; 
+                f.seedId = state.activeIdx; 
+                f.progress = 0; 
+            } else if(f.status === 'growing') {
+                f.progress += (100 / (sementes[f.seedId].tempo / 100));
+                if(f.progress >= 100) { 
+                    f.progress = 100; 
+                    f.status = 'ready'; 
+                }
+                updateField(f.id);
+            }
+        });
+    }
+
+    function loopWorkers() {
+        if(state.workers > 0) {
+            let colheuAlgo = false;
+            fieldStates.forEach(f => { 
+                if(f.status === 'ready') { harvest(f.id); colheuAlgo = true; } 
+            });
+            if(colheuAlgo) {
+                // Operários vendem automaticamente o que colheram
+                sementes.forEach((s, i) => { state.coins += (state.stocks[i] * s.valor); state.stocks[i] = 0; });
+                updateUI();
+            }
+        }
+    }
+
+    // SISTEMA DE INTERFACE E RENDERS DOS COMPONENTES
+    function updateUI() {
+        document.getElementById('txt-count').innerText = state.stocks[state.activeIdx];
+        document.getElementById('txt-wallet').innerText = Math.floor(state.coins);
+        document.getElementById('city-wallet').innerText = Math.floor(state.coins);
+        document.getElementById('lvl-fert').innerText = state.fert;
+        document.getElementById('qty-trator').innerText = state.tractors;
+        document.getElementById('qty-fields').innerText = state.fields;
+        document.getElementById('qty-workers').innerText = state.workers;
+        document.getElementById('txt-active-plant').innerText = sementes[state.activeIdx].nome;
+        document.getElementById('main-clicker').innerText = sementes[state.activeIdx].icon;
+
+        let cFert = Math.floor(40 * Math.pow(1.95, state.fert - 1));
+        let cTrator = Math.floor(100 * Math.pow(1.85, state.tractors));
+        let cField = Math.floor(250 * Math.pow(3.2, state.fields - 1));
+        let cWorker = Math.floor(600 * Math.pow(2.1, state.workers));
+
+        document.getElementById('btn-fert').innerText = `Melhorar ($${cFert})`;
+        document.getElementById('btn-trator').innerText = `Comprar ($${cTrator})`;
+        document.getElementById('btn-field').innerText = state.fields >= 9 ? "MÁX" : `Comprar ($${cField})`;
+        document.getElementById('btn-worker').innerText = `Contratar ($${cWorker})`;
+
+        document.getElementById('btn-fert').disabled = state.coins < cFert;
+        document.getElementById('btn-trator').disabled = state.coins < cTrator;
+        document.getElementById('btn-field').disabled = (state.coins < cField) || (state.fields >= 9);
+        document.getElementById('btn-worker').disabled = state.coins < cWorker;
+    }
+
+    function renderFields() {
+        const grid = document.getElementById('field-grid'); 
+        grid.innerHTML = '';
+        fieldStates.forEach(f => {
+            let div = document.createElement('div'); 
+            div.className = 'field'; 
+            div.id = 'f-' + f.id;
+            if(f.status === 'locked') {
+                div.innerText = '🔒';
+                div.style.background = '#444';
+                div.style.cursor = 'not-allowed';
+            } else { 
+                div.onclick = () => harvest(f.id); 
+                div.innerHTML = `<div class="crop-view" id="icon-${f.id}"></div><div class="progress-bar" id="bar-${f.id}"></div>`; 
+            }
+            grid.appendChild(div); 
+            updateField(f.id);
+        });
+    }
+
+    function updateField(id) {
+        let f = fieldStates[id]; 
+        let bar = document.getElementById('bar-' + id); 
+        let icon = document.getElementById('icon-' + id);
+        if(!bar) return;
+
+        if(f.status === 'growing') { 
+            icon.innerText = '🌱'; 
+            bar.style.width = f.progress + '%'; 
+        } else if(f.status === 'ready') { 
+            icon.innerText = sementes[f.seedId].icon; 
+            bar.style.width = '0%'; 
+        } else if(f.status === 'empty') { 
+            icon.innerText = '🟫'; 
+            bar.style.width = '0%'; 
+        }
+    }
+
+    function renderSales() {
+        const list = document.getElementById('inventory-list'); 
+        list.innerHTML = '';
+        let temItem = false;
+        sementes.forEach((s, i) => { 
+            if(state.stocks[i] > 0) {
+                temItem = true;
+                list.innerHTML += `<div style="padding:5px 0;">💰 ${s.nome}: ${state.stocks[i]} sacas (Valem: $${state.stocks[i]*s.value})</div>`; 
+            }
+        });
+        if(!temItem) list.innerText = "Nenhuma semente no estoque no momento...";
+    }
+
+    function renderShelf() {
+        const list = document.getElementById('shelf-list'); 
+        list.innerHTML = '';
+        sementes.forEach((s, i) => {
+            let label = state.unlocked[i] ? (state.activeIdx === i ? "Ativo" : "Ativar") : `Comprar ($${s.custo})`;
+            let disabledStr = (state.activeIdx === i) ? "disabled style='background:#555;'" : "";
+            list.innerHTML += `
+                <div class="seed-card" style="${state.activeIdx === i ? 'border-color:#27ae60;' : ''}">
+                    <div class="seed-icon">${s.icon}</div>
+                    <strong>${s.nome}</strong><br>
+                    <small style="color:#666">Preço: $${s.valor}</small><br><br>
+                    <button onclick="seedAction(${i})" ${disabledStr}>${label}</button>
+                </div>`;
+        });
+    }
+
+    function seedAction(i) {
+        if(!state.unlocked[i]) { 
+            if(state.coins >= sementes[i].custo) { 
+                state.coins -= sementes[i].custo; 
+                state.unlocked[i] = true; 
+                state.activeIdx = i; 
+            } 
+        } else { 
+            state.activeIdx = i; 
+        }
+        renderShelf(); 
+        updateUI();
+    }
+</script>
+</body>
+</html>
